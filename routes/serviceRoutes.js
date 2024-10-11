@@ -1,7 +1,7 @@
 const express = require("express");
 const protect = require("../middleware/authMiddleware.js");
 const Authorization = require("../middleware/Authorization.middleware.js");
-const { createService, getAllServices, getServiceById } = require("../controllers/serviceControllers.js");
+const { createService, getAllServices, getServiceById, getAllServicesInAdmin, updateServiceStatus } = require("../controllers/serviceControllers.js");
 
 const serviceRoutes = express.Router();
 
@@ -11,6 +11,11 @@ serviceRoutes.post("/createService", protect, Authorization(["admin"]), createSe
 serviceRoutes.get("/getAllServices", protect, Authorization(["user"]), getAllServices);
 
 serviceRoutes.get("/getServiceById/:id", protect, Authorization(["user"]), getServiceById);
+
+serviceRoutes.get("/getAllServicesInAdmin", protect, Authorization(["admin"]), getAllServicesInAdmin);
+
+serviceRoutes.post("/updateServiceStatus", protect, Authorization(["admin"]), updateServiceStatus);
+
 
 // Correctly export the serviceRoutes router
 module.exports = serviceRoutes;

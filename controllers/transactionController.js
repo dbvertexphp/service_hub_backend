@@ -8,20 +8,19 @@ const { sendFCMNotification } = require("./notificationControllers");
 
 const addTransaction = asyncHandler(async (req, res) => {
   const user_id = req.headers.userID;
-  const {payment_id, payment_status, total_amount, service_id } = req.body;
+  const { payment_id, payment_status, total_amount, service_id } = req.body;
 
-  if ( !total_amount) {
+  if (!total_amount) {
     return res.status(400).json({ message: "Invalid input", status: false });
   }
 
   try {
-
     // Create a single transaction document
     const newTransaction = new Transaction({
       user_id,
-      payment_id : payment_id || null,
+      payment_id: payment_id || null,
       service_id,
-      payment_status : payment_status || "pending",
+      payment_status: payment_status || "pending",
       total_amount,
     });
 
@@ -29,18 +28,18 @@ const addTransaction = asyncHandler(async (req, res) => {
 
     // Send notifications and add notifications for each supplier
     const user = await User.findById(user_id);
-      if (user.firebase_token || user.firebase_token == "dummy_token") {
-        const registrationToken = user.firebase_token;
-        const title = "Service Booked";
-        const body = `Your service has been successfully booked and a transaction of ${total_amount} has been completed. Thank you for choosing our service!`;
-        const notificationResult = await sendFCMNotification(registrationToken, title, body);
-        if (notificationResult.success) {
-          console.log("Notification sent successfully:", notificationResult.response);
-        } else {
-          console.error("Failed to send notification:", notificationResult.error);
-        }
-        await addNotification(user_id,service_id,body,title,total_amount);
+    if (user.firebase_token || user.firebase_token == "dummy_token") {
+      const registrationToken = user.firebase_token;
+      const title = "Service Booked";
+      const body = `Your service has been successfully booked and a transaction of ${total_amount} has been completed. Thank you for choosing our service!`;
+      const notificationResult = await sendFCMNotification(registrationToken, title, body);
+      if (notificationResult.success) {
+        console.log("Notification sent successfully:", notificationResult.response);
+      } else {
+        console.error("Failed to send notification:", notificationResult.error);
       }
+      await addNotification(user_id, service_id, body, title, total_amount);
+    }
 
     res.status(201).json({
       message: "Transactions added successfully",
@@ -172,31 +171,31 @@ const getAllTransactions = asyncHandler(async (req, res) => {
 // });
 
 const getAllTransactionsByUser = asyncHandler(async (req, res) => {
-      const user_id = req.headers.userID;
+  const user_id = req.headers.userID;
 
-      try {
-        // Find transactions for the specific user and populate related fields
-        const transactions = await Transaction.find({ user_id: user_id })
-          .populate({
-            path: "user_id",
-            select: "first_name last_name email", // Specify fields to populate
-          })
-          .populate({
-            path: "service_id",
-            select: "name email first_name last_name", // Specify fields to populate
-          }).sort({ createdAt: -1 });
+  try {
+    // Find transactions for the specific user and populate related fields
+    const transactions = await Transaction.find({ user_id: user_id })
+      .populate({
+        path: "user_id",
+        select: "first_name last_name email", // Specify fields to populate
+      })
+      .populate({
+        path: "service_id",
+        select: "service_name service_images", // Specify fields to populate
+      })
+      .sort({ createdAt: -1 });
 
-        // Return all transactions without pagination, search, or sorting
-        res.json({
-          message: "Transactions fetched successfully",
-          Transactions: transactions,
-        });
-      } catch (error) {
-        console.error("Error fetching transactions:", error.message);
-        res.status(500).json({ message: "Internal Server Error" });
-      }
+    // Return all transactions without pagination, search, or sorting
+    res.json({
+      message: "Transactions fetched successfully",
+      Transactions: transactions,
+    });
+  } catch (error) {
+    console.error("Error fetching transactions:", error.message);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
 });
-
 
 const getAllTransactionsByTeacher = asyncHandler(async (req, res) => {
   const { page = 1, search = "", Short = "", user_id } = req.body;
@@ -296,9 +295,111 @@ const getAllTransactionsByTeacher = asyncHandler(async (req, res) => {
   }
 });
 
+const getAllTransactionsInAdmin = asyncHandler(async (req, res) => {
+  const page = parseInt(req.query.page) || 1; // Default to page 1 if not specified
+  const limit = parseInt(req.query.limit) || 10; // Number of products per page, default to 10
+  const search = req.query.search || ""; // Search term
+  const sortBy = req.query.sortBy || "createdAt"; // Field to sort by, default to 'createdAt'
+  const order = req.query.order === "asc" ? 1 : -1; // Sorting order, default to descending
+
+  try {
+    const query = {
+      $and: [
+        {
+          $or: [{ payment_status: { $regex: search, $options: "i" } }],
+        },
+      ],
+    };
+
+    const totalTransaction = await Transaction.countDocuments(query);
+    const transaction = await Transaction.find(query)
+      .populate({
+        path: "user_id",
+        select: "first_name last_name email", // Specify fields to populate
+      })
+      .populate({
+        path: "service_id",
+        select: "service_name service_images", // Specify fields to populate
+      })
+      .sort({ [sortBy]: order })
+      .skip((page - 1) * limit)
+      .limit(limit);
+
+    res.status(200).json({
+      transaction,
+      page,
+      totalPages: Math.ceil(totalTransaction / limit),
+      totalTransaction,
+      status: true,
+    });
+  } catch (error) {
+    console.error("Error fetching transaction:", error.message);
+    res.status(500).json({ message: "Internal Server Error", status: false });
+  }
+});
+
+const updateTransactionStatus = asyncHandler(async (req, res) => {
+      const user_id = req.headers.userID;
+      const { transaction_id, status } = req.body;
+
+      // Validate input
+      if (!transaction_id || !status) {
+        return res.status(400).json({ message: "Invalid input", status: false });
+      }
+
+      try {
+        // Find the transaction by its ID and user ID
+        const transaction = await Transaction.findById({
+          _id: transaction_id,
+          user_id: user_id,
+        });
+
+        if (!transaction) {
+          return res.status(404).json({ message: "Transaction not found", status: false });
+        }
+
+        // Update the status field in the transaction document
+        transaction.status = status;
+
+        // Save the updated transaction
+        const updatedTransaction = await transaction.save();
+
+        // Send notification if the status is updated to "Completed"
+        if (updatedTransaction) {
+          const user = await User.findById(user_id);
+          const registrationToken = user.firebase_token;
+
+          const title = "Service Completed";
+          const body = `Your service with ID: ${transaction_id} has been marked as ${status}. Thank you for using our service!`;
+
+          if (user.firebase_token || user.firebase_token === "dummy_token") {
+            const notificationResult = await sendFCMNotification(registrationToken, title, body);
+            if (notificationResult.success) {
+              console.log("Notification sent successfully:", notificationResult.response);
+            } else {
+              console.error("Failed to send notification:", notificationResult.error);
+            }
+          }
+
+          // Optionally, add a notification record
+          await addNotification(user_id, transaction.service_id, body, title, transaction.total_amount);
+        }
+
+        res.status(200).json({
+          message: "Transaction status updated successfully",
+          transaction: updatedTransaction,
+        });
+      } catch (error) {
+        console.error("Error updating transaction status:", error.message);
+        res.status(500).json({ message: "Internal Server Error", status: false });
+      }
+});
+
 module.exports = {
   addTransaction,
   getAllTransactions,
   getAllTransactionsByUser,
   getAllTransactionsByTeacher,
+  getAllTransactionsInAdmin,
+  updateTransactionStatus
 };

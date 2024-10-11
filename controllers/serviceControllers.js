@@ -127,10 +127,76 @@ const deleteService = asyncHandler(async (req, res) => {
   res.status(200).json({ message: 'Service deleted successfully' });
 });
 
+const getAllServicesInAdmin = asyncHandler(async (req, res) => {
+      const page = parseInt(req.query.page) || 1; // Default to page 1 if not specified
+      const limit = parseInt(req.query.limit) || 10; // Number of products per page, default to 10
+      const search = req.query.search || ""; // Search term
+      const sortBy = req.query.sortBy || "createdAt"; // Field to sort by, default to 'createdAt'
+      const order = req.query.order === "asc" ? 1 : -1; // Sorting order, default to descending
+
+      try {
+        const query = {
+          $and: [
+            {
+              $or: [{ service_name: { $regex: search, $options: "i" } }],
+            },
+          ],
+        };
+
+        const totalServices = await Service.countDocuments(query);
+        const services = await Service.find(query)
+          .sort({ [sortBy]: order })
+          .skip((page - 1) * limit)
+          .limit(limit);
+
+        res.status(200).json({
+            services,
+          page,
+          totalPages: Math.ceil(totalServices / limit),
+          totalServices,
+          status: true,
+        });
+      } catch (error) {
+        console.error("Error fetching services:", error.message);
+        res.status(500).json({ message: "Internal Server Error", status: false });
+      }
+});
+
+const updateServiceStatus = asyncHandler(async (req, res) => {
+      const { serviceId, active } = req.body; // Get the product ID from the URL parameters
+
+      if (typeof active !== "boolean") {
+        return res.status(400).json({ message: "Invalid status value. It should be true or false.", status: false });
+      }
+
+      try {
+        const service = await Service.findById(serviceId);
+
+        if (!service) {
+          return res.status(404).json({ message: "service not found", status: false });
+        }
+
+        service.active = active;
+        const updatedService = await service.save();
+
+        res.status(200).json({
+          _id: updatedService._id,
+          active: updatedService.active,
+          status: true,
+        });
+      } catch (error) {
+        console.error("Error updating product status:", error.message);
+        res.status(500).json({ error: "Internal Server Error" });
+      }
+});
+
+
 module.exports = {
   createService,
   getAllServices,
   updateService,
   deleteService,
-  getServiceById
+  getServiceById,
+  getAllServicesInAdmin,
+  updateServiceStatus
 };
