@@ -51,6 +51,7 @@ const {
   getProductsByOrderAndSupplier,
   updateUserPincode,
   getProductsRendom,
+  getProfileData
 } = require("../controllers/userControllers.js");
 const { createHire, getHireListByUserId, updateHireStatus, getAllHireList, getHireByMe, HirePaymentUpdateStatus } = require("../controllers/hireControllers.js");
 const protect = require("../middleware/authMiddleware.js");
@@ -125,7 +126,7 @@ userRoutes.route("/getUserView/:_id/").get(commonProtect, getUserView);
 /*------------- Auth Routes --------------------- */
 
 userRoutes.route("/").get(protect, getUsers);
-
+userRoutes.route("/getProfileData").get(protect, getProfileData);
 userRoutes.route("/updateUserProfile").put(protect, updateProfileData);
 userRoutes.route("/searchUsers").post(protect, searchUsers);
 userRoutes.route("/UpdateMobileAdmin").post(protect, UpdateMobileAdmin);

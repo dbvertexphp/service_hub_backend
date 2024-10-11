@@ -20,18 +20,14 @@ const sendFCMNotification = async (registrationToken, title, body) => {
 };
 
 // Function to add a new notification
-const addNotification = async (userId, order_id, message, totalamount, supplierIds, title, type) => {
+const addNotification = async (userId, service_id, message,title, totalamount) => {
       try {
         const newNotification = new OrderNotification({
           user_id: userId,
-          order_id: order_id,
+          service_id: service_id,
           title: title,
-          type: type,
           message: message,
           totalamount: totalamount,
-          supplier_ids: supplierIds, // Use supplierIds passed to the function
-          userstatus: "unread",
-          supplierstatus: "unread",
         });
 
         await newNotification.save();
@@ -42,16 +38,16 @@ const addNotification = async (userId, order_id, message, totalamount, supplierI
 };
 
 
-const getTeacherNotifications = asyncHandler(async (req, res) => {
+const getUserNotifications = asyncHandler(async (req, res) => {
   const page = parseInt(req.query.page) || 1; // Default to page 1 if not specified
   const perPage = 10; // Number of notifications per page
 
   try {
-    const count = await TeacherNotification.countDocuments({ user_id: req.headers.userID });
+    const count = await OrderNotification.countDocuments({ user_id: req.headers.userID });
 
-    const notifications = await TeacherNotification.find({ user_id: req.headers.userID })
+    const notifications = await OrderNotification.find({ user_id: req.headers.userID })
       .sort({ created_at: -1 }) // Sort by descending order of creation date
-      .populate("user_id", "full_name profile_pic") // Populate user details from User collection
+      .populate("user_id", "first_name last_name profile_pic") // Populate user details from User collection
       .skip((page - 1) * perPage)
       .limit(perPage)
       .exec();
@@ -73,6 +69,6 @@ const getTeacherNotifications = asyncHandler(async (req, res) => {
 
 module.exports = {
   addNotification,
-  getTeacherNotifications,
+  getUserNotifications,
 
 };

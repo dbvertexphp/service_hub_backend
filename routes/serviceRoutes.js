@@ -1,23 +1,16 @@
-// routes/serviceRoutes.js
-const express = require('express');
-const {
-  createService,
-  getAllServices,
-  updateService,
-  deleteService,
-} = require('../controllers/serviceControllers');
+const express = require("express");
+const protect = require("../middleware/authMiddleware.js");
+const Authorization = require("../middleware/Authorization.middleware.js");
+const { createService, getAllServices, getServiceById } = require("../controllers/serviceControllers.js");
 
 const serviceRoutes = express.Router();
 
-serviceRoutes.route('/createService')
-  .post(createService)  // Create a new service
+// Apply protect and Authorization middleware to updateTeacherProfile route
+serviceRoutes.post("/createService", protect, Authorization(["admin"]), createService);
 
-  serviceRoutes.route('/createService')
-  .post(createService)  // Create a new service
-  .get(getAllServices); // Get all services
+serviceRoutes.get("/getAllServices", protect, Authorization(["user"]), getAllServices);
 
-  serviceRoutes.route('/updateService:id')
-  .put(updateService)   // Update a service
-  .delete(deleteService); // Delete a service
+serviceRoutes.get("/getServiceById/:id", protect, Authorization(["user"]), getServiceById);
 
+// Correctly export the serviceRoutes router
 module.exports = serviceRoutes;

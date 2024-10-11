@@ -512,6 +512,7 @@ const profilePicUpload = asyncHandler(async (req, res) => {
   //   throw new ErrorHandler("No file uploaded", 400);
   // });
 });
+
 const profilePicKey = asyncHandler(async (req, res) => {
   const userId = req.user._id; // Assuming you have user authentication middleware
   const profilePicKeys = req.body.profilePicKey;
@@ -534,19 +535,19 @@ const profilePicKey = asyncHandler(async (req, res) => {
 });
 
 const updateProfileData = asyncHandler(async (req, res) => {
-      const { first_name, last_name, email, mobile, address } = req.body;
+      const { first_name, last_name, email, mobile, Address } = req.body;
 
-      const userId = req.user._id; // Assuming you have user authentication middleware
+      const user_id = req.headers.userID; // Assuming you have user authentication middleware
 
       try {
         // Update the user's profile fields if they are provided in the request
         const updatedUser = await User.findByIdAndUpdate(
-          userId,
+            user_id,
           {
             $set: {
               last_name: last_name,
               first_name: first_name,
-              address: address,
+              Address: Address,
               email: email, // Add email field
               mobile: mobile, // Add mobile field
             },
@@ -562,7 +563,7 @@ const updateProfileData = asyncHandler(async (req, res) => {
           _id: updatedUser._id,
           last_name: updatedUser.last_name,
           first_name: updatedUser.first_name,
-          address: updatedUser.address,
+          Address: updatedUser.Address,
           email: updatedUser.email, // Return updated email
           mobile: updatedUser.mobile, // Return updated mobile
           status: true,
@@ -573,6 +574,26 @@ const updateProfileData = asyncHandler(async (req, res) => {
       }
 });
 
+const getProfileData = asyncHandler(async (req, res) => {
+      const user_id = req.headers.userID; // Assuming you have user authentication middleware
+
+      try {
+        // Find the user by ID
+        const user = await User.findById(user_id);
+        if (!user) {
+          return res.status(404).json({ message: "User not found" });
+        }
+
+        // Return the user's profile information
+        return res.status(200).json({
+          user: user,
+          status: true,
+        });
+      } catch (error) {
+        console.error("Error fetching user profile:", error.message);
+        return res.status(500).json({ error: "Internal Server Error" });
+      }
+});
 
 const forgetPassword = asyncHandler(async (req, res) => {
       const { newPassword, confirm_password, mobile, otp } = req.body;
@@ -641,7 +662,6 @@ const forgetPassword = asyncHandler(async (req, res) => {
         });
       }
 });
-
 
 const ChangePassword = asyncHandler(async (req, res, next) => {
   const userId = req.headers.userID; // Assuming you have user authentication middleware
@@ -2755,4 +2775,5 @@ module.exports = {
   getProductsByOrderAndSupplier,
   updateUserPincode,
   getProductsRendom,
+  getProfileData
 };
