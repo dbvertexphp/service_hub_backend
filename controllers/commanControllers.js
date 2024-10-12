@@ -63,6 +63,7 @@ const Checklikestatus = asyncHandler(async (req, res) => {
 
 const contactUs = asyncHandler(async (req, res) => {
   try {
+      const user_id = req.headers.userID;
     // Extract parameters from the request body
     const { name, email, mobile_number, message } = req.body;
 
@@ -71,29 +72,14 @@ const contactUs = asyncHandler(async (req, res) => {
       return res.status(400).json({ error: "Missing required parameters" });
     }
 
-    //     const receiverdata = await User.findOne({
-    //       IsAdmin: "true",
-    //     });
-
-    //     const senderUser = await User.findOne({
-    //       _id: receiverdata.id,
-    //     });
-
-    //     const first_name = name;
-
-    //     const Notificationmessage = `${first_name} has contacted you`;
-    //     const type = "ContactUs";
-
     // Create a new ContactUs document
     contactUsEntry = await ContactUs.create({
+      user_id,
       name,
       email,
       mobile_number,
       message,
     });
-
-    //createNotificationAdmin(receiverdata.id, receiverdata._id, Notificationmessage, type);
-    // Save the ContactUs document to the database
 
     // Send a success response
     return res.json({

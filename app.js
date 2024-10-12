@@ -22,6 +22,7 @@ const { commanRoutes } = require("./routes/commanRoutes.js");
 const { transactionRoutes } = require("./routes/transactionRoutes.js");
 const { adminRoutes } = require("./routes/adminRoutes.js");
 const serviceRoutes = require('./routes/serviceRoutes.js');
+const bannerRoutes = require('./routes/bannerRoutes.js');
 
 // --------------------- Routes -------------------------------
 const { notFound, errorHandler } = require("./middleware/errorMiddleware.js");
@@ -29,7 +30,6 @@ const cors = require("cors");
 const path = require("path");
 const { subCategoryRoutes } = require("./routes/subCategoryRoutes.js");
 const { supplierRoutes } = require("./routes/supplierRoutes.js");
-const { fertilizerRoutes } = require("./routes/fertilizerRoutes.js");
 const { toolsRoutes } = require("./routes/toolsRoutes.js");
 const { orderNotificationsRoutes } = require("./routes/orderNotificationRoutes.js");
 require("dotenv").config();
@@ -55,7 +55,6 @@ app.use(
 
 app.use("/api/user", userRoutes);
 app.use("/api/supplier", supplierRoutes);
-app.use("/api/fertilizer", fertilizerRoutes);
 app.use("/api/tools", toolsRoutes);
 app.use("/api/orderNotification", orderNotificationsRoutes);
 app.use("/api/message", messageRoutes);
@@ -72,6 +71,7 @@ app.use("/api/comman", commanRoutes);
 app.use("/api/transaction", transactionRoutes);
 app.use("/api/admin", adminRoutes);
 app.use('/api/services', serviceRoutes);
+app.use('/api/banner', bannerRoutes);
 
 // --------------------------Routes------------------------------
 

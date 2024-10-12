@@ -40,7 +40,18 @@ const createService = asyncHandler(async (req, res) => {
 // Get all services
 const getAllServices = asyncHandler(async (req, res) => {
       try {
-        const services = await Service.find(); // Fetch all services
+        // Get the search query from the request
+        const { search } = req.query;
+
+        // Create a filter object for MongoDB
+        const filter = search ? {
+          $or: [
+            { service_name: { $regex: search, $options: 'i' } }, // Match service names (case insensitive)
+            { service_description: { $regex: search, $options: 'i' } } // Match descriptions (case insensitive)
+          ]
+        } : {}; // If no search query, return all services
+
+        const services = await Service.find(filter); // Fetch all services matching the filter
 
         if (!services || services.length === 0) {
           return res.status(404).json({
@@ -59,6 +70,7 @@ const getAllServices = asyncHandler(async (req, res) => {
         });
       }
 });
+
 
 const getServiceById = asyncHandler(async (req, res) => {
       try {

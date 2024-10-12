@@ -24,6 +24,7 @@ const privacyPolicySchema = new mongoose.Schema({
 });
 
 const contactUsSchema = new mongoose.Schema({
+  user_id: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
   name: {
     type: String,
     required: true,
@@ -40,6 +41,7 @@ const contactUsSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+
   timestamp: {
     type: Date,
     default: Date.now,
