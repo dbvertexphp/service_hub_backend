@@ -14,7 +14,16 @@ const addTransaction = asyncHandler(async (req, res) => {
     return res.status(400).json({ message: "Invalid input", status: false });
   }
 
+  // Helper function to generate unique order_id
+  const generateOrderId = () => {
+    const randomDigits = Math.floor(100000 + Math.random() * 900000); // Generates a random 6-digit number
+    return `#${randomDigits}`; // Prepend with #
+  };
+
   try {
+    // Generate unique order_id
+    const order_id = generateOrderId();
+
     // Create a single transaction document
     const newTransaction = new Transaction({
       user_id,
@@ -22,6 +31,7 @@ const addTransaction = asyncHandler(async (req, res) => {
       service_id,
       payment_status: payment_status || "pending",
       total_amount,
+      order_id, // Save the unique order_id
     });
 
     const savedTransaction = await newTransaction.save();
@@ -319,7 +329,6 @@ const getAllTransactionsInAdmin = asyncHandler(async (req, res) => {
       })
       .populate({
         path: "service_id",
-        select: "service_name service_images", // Specify fields to populate
       })
       .sort({ [sortBy]: order })
       .skip((page - 1) * limit)
@@ -339,60 +348,76 @@ const getAllTransactionsInAdmin = asyncHandler(async (req, res) => {
 });
 
 const updateTransactionStatus = asyncHandler(async (req, res) => {
-      const user_id = req.headers.userID;
-      const { transaction_id, status } = req.body;
+  const user_id = req.headers.userID;
+  const { transaction_id, status } = req.body;
 
-      // Validate input
-      if (!transaction_id || !status) {
-        return res.status(400).json({ message: "Invalid input", status: false });
+  // Validate input
+  if (!transaction_id || !status) {
+    return res.status(400).json({ message: "Invalid input", status: false });
+  }
+
+  try {
+    // Find the transaction by its ID and user ID
+    const transaction = await Transaction.findOne({
+      _id: transaction_id,
+    });
+
+
+    if (!transaction) {
+      return res.status(404).json({ message: "Transaction not found", status: false });
+    }
+
+    // Update the status field in the transaction document
+    transaction.status = status;
+
+    // Save the updated transaction
+    const updatedTransaction = await transaction.save();
+
+    // Prepare notification based on the updated status
+    const user = await User.findById(user_id);
+    const registrationToken = user.firebase_token;
+
+    let title;
+    let body;
+
+    switch (status) {
+      case "Waiting":
+        title = "Transaction Status Updated";
+        body = `Your service with ID: ${transaction.order_id} is now in a waiting status.`;
+        break;
+      case "Accepted":
+        title = "Service Accepted";
+        body = `Your service ID: ${transaction.order_id} has been accepted. Thank you for your patience!`;
+        break;
+      case "Rejected":
+        title = "Service Rejected";
+        body = `Your service ID: ${transaction.order_id} has been rejected. Please contact support for further assistance.`;
+        break;
+      default:
+        title = "Service Status Updated";
+        body = `Your service ID: ${transaction.order_id} has been updated to ${status}.`;
+    }
+
+    if (user.firebase_token || user.firebase_token === "dummy_token") {
+      const notificationResult = await sendFCMNotification(registrationToken, title, body);
+      if (notificationResult.success) {
+        console.log("Notification sent successfully:", notificationResult.response);
+      } else {
+        console.error("Failed to send notification:", notificationResult.error);
       }
+    }
 
-      try {
-        // Find the transaction by its ID and user ID
-        const transaction = await Transaction.findById({
-          _id: transaction_id,
-          user_id: user_id,
-        });
+    // Optionally, add a notification record
+    await addNotification(user_id, transaction.service_id, body, title, transaction.total_amount);
 
-        if (!transaction) {
-          return res.status(404).json({ message: "Transaction not found", status: false });
-        }
-
-        // Update the status field in the transaction document
-        transaction.status = status;
-
-        // Save the updated transaction
-        const updatedTransaction = await transaction.save();
-
-        // Send notification if the status is updated to "Completed"
-        if (updatedTransaction) {
-          const user = await User.findById(user_id);
-          const registrationToken = user.firebase_token;
-
-          const title = "Service Completed";
-          const body = `Your service with ID: ${transaction_id} has been marked as ${status}. Thank you for using our service!`;
-
-          if (user.firebase_token || user.firebase_token === "dummy_token") {
-            const notificationResult = await sendFCMNotification(registrationToken, title, body);
-            if (notificationResult.success) {
-              console.log("Notification sent successfully:", notificationResult.response);
-            } else {
-              console.error("Failed to send notification:", notificationResult.error);
-            }
-          }
-
-          // Optionally, add a notification record
-          await addNotification(user_id, transaction.service_id, body, title, transaction.total_amount);
-        }
-
-        res.status(200).json({
-          message: "Transaction status updated successfully",
-          transaction: updatedTransaction,
-        });
-      } catch (error) {
-        console.error("Error updating transaction status:", error.message);
-        res.status(500).json({ message: "Internal Server Error", status: false });
-      }
+    res.status(200).json({
+      message: "Transaction status updated successfully",
+      transaction: updatedTransaction,
+    });
+  } catch (error) {
+    console.error("Error updating transaction status:", error.message);
+    res.status(500).json({ message: "Internal Server Error", status: false });
+  }
 });
 
 module.exports = {
@@ -401,5 +426,5 @@ module.exports = {
   getAllTransactionsByUser,
   getAllTransactionsByTeacher,
   getAllTransactionsInAdmin,
-  updateTransactionStatus
+  updateTransactionStatus,
 };

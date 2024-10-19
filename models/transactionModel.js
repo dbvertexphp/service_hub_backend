@@ -22,11 +22,14 @@ const transactionSchema = new Schema(
       type: String,
       enum: ["Completed","Cancelled"], default: "Pending"
     },
+    order_id: {
+      type: String,
+    },
     total_amount: {
       type: Number,
       required: true,
     },
-    status: { type: String, enum: ["Waiting", "InProgress", "Completed", "cancelled"], default: "Waiting" },
+    status: { type: String, enum: ["Waiting", "Accepted", "Rejected"], default: "Waiting" },
     datetime: {
       type: String,
       default: () => moment().tz("Asia/Kolkata").format("YYYY-MMM-DD hh:mm:ss A"),
