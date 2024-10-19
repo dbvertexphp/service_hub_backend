@@ -1,98 +1,102 @@
 // controllers/serviceController.js
-const asyncHandler = require('express-async-handler');
-const Service = require('../models/serviceModel.js');
+const asyncHandler = require("express-async-handler");
+const Service = require("../models/serviceModel.js");
 const upload = require("../middleware/uploadMiddleware.js");
 // Create a new service
 const createService = asyncHandler(async (req, res) => {
-      req.uploadPath = "uploads/services";
+  req.uploadPath = "uploads/services";
 
-      // Using upload.array to handle multiple files and form data
-      upload.array("service_image", 5)(req, res, async (err) => { // Max 5 images
-        if (err) {
-          return res.status(400).json({ error: err.message });
-        }
+  // Using upload.array to handle multiple files and form data
+  upload.array("service_image", 5)(req, res, async (err) => {
+    // Max 5 images
+    if (err) {
+      return res.status(400).json({ error: err.message });
+    }
 
-        // Ensure body fields are being received
-        const { service_name, service_description, service_amount } = req.body;
+    // Ensure body fields are being received
+    const { service_name, service_description, service_amount } = req.body;
 
-        if (!service_name || !service_description || !service_amount) {
-          return res.status(400).json({ error: "All fields are required" });
-        }
+    if (!service_name || !service_description || !service_amount) {
+      return res.status(400).json({ error: "All fields are required" });
+    }
 
-        // Get the paths for all uploaded images
-        const service_images = req.files ? req.files.map(file => `${req.uploadPath}/${file.filename}`) : [];
+    // Get the paths for all uploaded images
+    const service_images = req.files ? req.files.map((file) => `${req.uploadPath}/${file.filename}`) : [];
 
-        // Create the service entry in the database
-        const newService = await Service.create({
-          service_name,
-          service_images, // Store multiple image paths
-          service_description,
-          service_amount,
-        });
+    // Create the service entry in the database
+    const newService = await Service.create({
+      service_name,
+      service_images, // Store multiple image paths
+      service_description,
+      service_amount,
+    });
 
-        res.status(201).json({
-          message: 'Service created successfully',
-          service: newService,
-        });
-      });
+    res.status(201).json({
+      message: "Service created successfully",
+      service: newService,
+    });
+  });
 });
 
 // Get all services
 const getAllServices = asyncHandler(async (req, res) => {
-      try {
-        // Get the search query from the request
-        const { search } = req.query;
+  try {
+    // Get the search query from the request
+    const { search } = req.query;
 
-        // Create a filter object for MongoDB
-        const filter = search ? {
-          $or: [
-            { service_name: { $regex: search, $options: 'i' } }, // Match service names (case insensitive)
-            { service_description: { $regex: search, $options: 'i' } } // Match descriptions (case insensitive)
-          ]
-        } : {}; // If no search query, return all services
+    // Create a filter object for MongoDB
+    const filter = {
+      active: true, // Include only active services
+      ...(search
+        ? {
+            $or: [
+              { service_name: { $regex: search, $options: "i" } }, // Match service names (case insensitive)
+              { service_description: { $regex: search, $options: "i" } }, // Match descriptions (case insensitive)
+            ],
+          }
+        : {}),
+    };
 
-        const services = await Service.find(filter); // Fetch all services matching the filter
+    const services = await Service.find(filter); // Fetch all services matching the filter
 
-        if (!services || services.length === 0) {
-          return res.status(404).json({
-            message: "No services found",
-          });
-        }
+    if (!services || services.length === 0) {
+      return res.status(404).json({
+        message: "No services found",
+      });
+    }
 
-        res.status(200).json({
-          message: "Services fetched successfully",
-          services,
-        });
-      } catch (error) {
-        res.status(500).json({
-          message: "Error fetching services",
-          error: error.message,
-        });
-      }
+    res.status(200).json({
+      message: "Services fetched successfully",
+      services,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Error fetching services",
+      error: error.message,
+    });
+  }
 });
-
 
 const getServiceById = asyncHandler(async (req, res) => {
-      try {
-        const serviceId = req.params.id; // Get service ID from the request parameters
-        const service = await Service.findById(serviceId); // Find the service by ID
+  try {
+    const serviceId = req.params.id; // Get service ID from the request parameters
+    const service = await Service.findById(serviceId); // Find the service by ID
 
-        if (!service) {
-          return res.status(404).json({ message: 'Service not found' });
-        }
+    if (!service) {
+      return res.status(404).json({ message: "Service not found" });
+    }
 
-        res.status(200).json({
-          message: "Service fetched successfully",
-          service,
-        });
-      } catch (error) {
-        res.status(500).json({
-          message: "Error fetching service",
-          error: error.message,
-        });
-      }
+    res.status(200).json({
+      message: "Service fetched successfully",
+      service,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Error fetching service",
+      error: error.message,
+    });
+  }
 });
-
 
 // Update a service
 const updateService = asyncHandler(async (req, res) => {
@@ -108,19 +112,23 @@ const updateService = asyncHandler(async (req, res) => {
     // Get the service image path if uploaded
     const service_image = req.file ? `${req.uploadPath}/${req.file.filename}` : null;
 
-    const updatedService = await Service.findByIdAndUpdate(id, {
-      service_name,
-      service_image,
-      service_description,
-      service_amount,
-    }, { new: true });
+    const updatedService = await Service.findByIdAndUpdate(
+      id,
+      {
+        service_name,
+        service_image,
+        service_description,
+        service_amount,
+      },
+      { new: true }
+    );
 
     if (!updatedService) {
-      return res.status(404).json({ message: 'Service not found' });
+      return res.status(404).json({ message: "Service not found" });
     }
 
     res.status(200).json({
-      message: 'Service updated successfully',
+      message: "Service updated successfully",
       service: updatedService,
     });
   });
@@ -133,75 +141,74 @@ const deleteService = asyncHandler(async (req, res) => {
   const deletedService = await Service.findByIdAndDelete(id);
 
   if (!deletedService) {
-    return res.status(404).json({ message: 'Service not found' });
+    return res.status(404).json({ message: "Service not found" });
   }
 
-  res.status(200).json({ message: 'Service deleted successfully' });
+  res.status(200).json({ message: "Service deleted successfully" });
 });
 
 const getAllServicesInAdmin = asyncHandler(async (req, res) => {
-      const page = parseInt(req.query.page) || 1; // Default to page 1 if not specified
-      const limit = parseInt(req.query.limit) || 10; // Number of products per page, default to 10
-      const search = req.query.search || ""; // Search term
-      const sortBy = req.query.sortBy || "createdAt"; // Field to sort by, default to 'createdAt'
-      const order = req.query.order === "asc" ? 1 : -1; // Sorting order, default to descending
+  const page = parseInt(req.query.page) || 1; // Default to page 1 if not specified
+  const limit = parseInt(req.query.limit) || 10; // Number of products per page, default to 10
+  const search = req.query.search || ""; // Search term
+  const sortBy = req.query.sortBy || "createdAt"; // Field to sort by, default to 'createdAt'
+  const order = req.query.order === "asc" ? 1 : -1; // Sorting order, default to descending
 
-      try {
-        const query = {
-          $and: [
-            {
-              $or: [{ service_name: { $regex: search, $options: "i" } }],
-            },
-          ],
-        };
+  try {
+    const query = {
+      $and: [
+        {
+          $or: [{ service_name: { $regex: search, $options: "i" } }],
+        },
+      ],
+    };
 
-        const totalServices = await Service.countDocuments(query);
-        const services = await Service.find(query)
-          .sort({ [sortBy]: order })
-          .skip((page - 1) * limit)
-          .limit(limit);
+    const totalServices = await Service.countDocuments(query);
+    const services = await Service.find(query)
+      .sort({ [sortBy]: order })
+      .skip((page - 1) * limit)
+      .limit(limit);
 
-        res.status(200).json({
-            services,
-          page,
-          totalPages: Math.ceil(totalServices / limit),
-          totalServices,
-          status: true,
-        });
-      } catch (error) {
-        console.error("Error fetching services:", error.message);
-        res.status(500).json({ message: "Internal Server Error", status: false });
-      }
+    res.status(200).json({
+      services,
+      page,
+      totalPages: Math.ceil(totalServices / limit),
+      totalServices,
+      status: true,
+    });
+  } catch (error) {
+    console.error("Error fetching services:", error.message);
+    res.status(500).json({ message: "Internal Server Error", status: false });
+  }
 });
 
 const updateServiceStatus = asyncHandler(async (req, res) => {
-      const { serviceId, active } = req.body; // Get the product ID from the URL parameters
+  const { serviceId, active } = req.body; // Get the product ID from the URL parameters
 
-      if (typeof active !== "boolean") {
-        return res.status(400).json({ message: "Invalid status value. It should be true or false.", status: false });
-      }
+  if (typeof active !== "boolean") {
+    return res.status(400).json({ message: "Invalid status value. It should be true or false.", status: false });
+  }
 
-      try {
-        const service = await Service.findById(serviceId);
+  try {
+    const service = await Service.findById(serviceId);
 
-        if (!service) {
-          return res.status(404).json({ message: "service not found", status: false });
-        }
+    if (!service) {
+      return res.status(404).json({ message: "service not found", status: false });
+    }
 
-        service.active = active;
-        const updatedService = await service.save();
+    service.active = active;
+    const updatedService = await service.save();
 
-        res.status(200).json({
-          _id: updatedService._id,
-          active: updatedService.active,
-          status: true,
-        });
-      } catch (error) {
-        console.error("Error updating product status:", error.message);
-        res.status(500).json({ error: "Internal Server Error" });
-      }
+    res.status(200).json({
+      _id: updatedService._id,
+      active: updatedService.active,
+      status: true,
+    });
+  } catch (error) {
+    console.error("Error updating product status:", error.message);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
 });
-
 
 module.exports = {
   createService,
@@ -210,5 +217,5 @@ module.exports = {
   deleteService,
   getServiceById,
   getAllServicesInAdmin,
-  updateServiceStatus
+  updateServiceStatus,
 };

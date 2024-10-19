@@ -16,7 +16,6 @@ serviceRoutes.get("/getAllServicesInAdmin", protect, Authorization(["admin"]), g
 
 serviceRoutes.post("/updateServiceStatus", protect, Authorization(["admin"]), updateServiceStatus);
 
-
 serviceRoutes.delete("/deleteService/:id", protect, Authorization(["admin"]), deleteService);
 
 
