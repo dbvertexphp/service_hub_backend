@@ -24,6 +24,7 @@ const upload = require("../middleware/uploadMiddleware.js");
 const Product = require("../models/productModel.js");
 const Cart = require("../models/cartModel.js");
 const Order = require("../models/orderModel.js");
+const Service = require("../models/serviceModel.js");
 const TeacherPayment = require("../models/TeacherPaymentModel.js");
 const OrderNotification = require("../models/orderNotificationModel.js");
 const Favorite = require("../models/favorite.js");
@@ -846,30 +847,16 @@ const searchUsers = asyncHandler(async (req, res) => {
 
 const getAllDashboardCount = asyncHandler(async (req, res) => {
   try {
-    const teacherCount = await User.countDocuments({ role: "supplier" });
+    const services = await Service.countDocuments();
     const studentCount = await User.countDocuments({ role: "user" });
-    const courseCount = await Product.countDocuments();
-    const adminnotifications = await AdminNotificationMessages.countDocuments({
-      readstatus: false,
-    }); // Counting only documents with readstatus false
-    const transactionAmountSum = await Transaction.aggregate([
-      {
-        $group: {
-          _id: null,
-          totalAmount: { $sum: "$amount" }, // Summing the "amount" field
-        },
-      },
-    ]);
-
-    // Extracting the total sum of the "amount" field
-    const transactionTotalAmount = transactionAmountSum.length > 0 ? transactionAmountSum[0].totalAmount : 0;
+    const booking = await Transaction.countDocuments();
+    const notifications = await OrderNotification.countDocuments(); // Counting only documents with readstatus false
 
     res.status(200).json({
-      teacherCount: teacherCount,
+      services,
       studentCount: studentCount,
-      courseCount: courseCount,
-      adminnotifications: adminnotifications,
-      transactionTotalAmount: transactionTotalAmount,
+      booking,
+      notifications,
     });
   } catch (error) {
     console.error("Error getting dashboard counts:", error);

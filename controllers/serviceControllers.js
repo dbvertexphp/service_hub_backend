@@ -100,37 +100,43 @@ const getServiceById = asyncHandler(async (req, res) => {
 
 // Update a service
 const updateService = asyncHandler(async (req, res) => {
-  const { id } = req.params;
-  const { service_name, service_description, service_amount } = req.body;
-
-  // Handle file upload
-  upload.single("service_image")(req, res, async (err) => {
+  // Use multer to handle multiple image uploads (up to 5 images)
+  req.uploadPath = "uploads/services";
+  upload.array("service_images", 5)(req, res, async (err) => {
     if (err) {
       return res.status(400).json({ error: err.message });
     }
 
-    // Get the service image path if uploaded
-    const service_image = req.file ? `${req.uploadPath}/${req.file.filename}` : null;
+    // Extract form data after multer processes the files
+    const { service_name, service_description, service_amount, service_id } = req.body;
 
-    const updatedService = await Service.findByIdAndUpdate(
-      id,
-      {
-        service_name,
-        service_image,
-        service_description,
-        service_amount,
-      },
-      { new: true }
-    );
+    // Get the paths of the uploaded images
+    const service_images = req.files ? req.files.map((file) => `${req.uploadPath}/${file.filename}`) : [];
 
-    if (!updatedService) {
-      return res.status(404).json({ message: "Service not found" });
+    try {
+      // Update the service with the new data and images
+      const updatedService = await Service.findByIdAndUpdate(
+        service_id,
+        {
+          service_name,
+          service_images, // Save the array of image paths
+          service_description,
+          service_amount,
+        },
+        { new: true } // Return the updated document
+      );
+
+      if (!updatedService) {
+        return res.status(404).json({ message: "Service not found" });
+      }
+
+      res.status(200).json({
+        message: "Service updated successfully",
+        service: updatedService,
+      });
+    } catch (error) {
+      res.status(500).json({ error: "Internal Server Error" });
     }
-
-    res.status(200).json({
-      message: "Service updated successfully",
-      service: updatedService,
-    });
   });
 });
 

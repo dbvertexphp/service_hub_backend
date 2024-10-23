@@ -316,7 +316,7 @@ const getAllTransactionsInAdmin = asyncHandler(async (req, res) => {
     const query = {
       $and: [
         {
-          $or: [{ payment_status: { $regex: search, $options: "i" } }],
+          $or: [{ order_id: { $regex: search, $options: "i" } }],
         },
       ],
     };

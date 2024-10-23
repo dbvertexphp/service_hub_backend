@@ -15,13 +15,27 @@ const sendFCMNotification = async (registrationToken, title, body) => {
       title,
       body,
     },
-    token: registrationToken,
+    token: registrationToken, // Use the passed registrationToken
   };
+
   try {
     const response = await admin.messaging().send(message);
     return { success: true, response };
   } catch (error) {
-    return { success: false, error };
+    // Improved error handling
+    console.error("Error sending FCM notification:", {
+      message: error.message,
+      stack: error.stack,
+      code: error.code,
+    });
+
+    if (error.code === "messaging/registration-token-not-registered") {
+      // Handle the case when the token is no longer registered
+      console.warn(`Token not registered: ${registrationToken}`);
+      // Logic to remove the token from your database or notify the user
+    }
+
+    return { success: false, error: error.message || "Unknown error" };
   }
 };
 
