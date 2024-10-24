@@ -12,7 +12,7 @@ serviceRoutes.get("/getAllServices", protect, Authorization(["user"]), getAllSer
 
 serviceRoutes.post("/updateService", updateService);
 
-serviceRoutes.get("/getServiceById/:id", protect, Authorization(["user"]), getServiceById);
+serviceRoutes.get("/getServiceById/:id", protect, Authorization(["user","admin"]), getServiceById);
 
 serviceRoutes.get("/getAllServicesInAdmin", protect, Authorization(["admin"]), getAllServicesInAdmin);
 

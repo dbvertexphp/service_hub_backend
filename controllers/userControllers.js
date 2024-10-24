@@ -406,12 +406,12 @@ const ForgetresendOTP = asyncHandler(async (req, res) => {
 });
 
 const profilePicUpload = asyncHandler(async (req, res) => {
-  upload.single("profilePic")(req, res, async (err) => {
+  upload.single("profile_pic")(req, res, async (err) => {
     if (err) {
       // Handle file upload error
       throw new ErrorHandler("File upload error", 400);
     }
-    const userId = req.user._id; // Assuming you have user authentication middleware
+    const userId = req.headers.userID; // Assuming you have user authentication middleware
     // Check if the user exists
     const user = await User.findById(userId);
     if (!user) {
