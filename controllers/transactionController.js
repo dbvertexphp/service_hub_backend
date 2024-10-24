@@ -41,7 +41,7 @@ const addTransaction = asyncHandler(async (req, res) => {
     if (user.firebase_token || user.firebase_token == "dummy_token") {
       const registrationToken = user.firebase_token;
       const title = "Service Booked";
-      const body = `Your service has been successfully booked and a transaction of ${total_amount} has been completed. Thank you for choosing our service!`;
+      const body = `Your service has been successfully booked. Thank you for choosing our service! Admin will approve your booking shortly.`;
       const notificationResult = await sendFCMNotification(registrationToken, title, body);
       if (notificationResult.success) {
         console.log("Notification sent successfully:", notificationResult.response);
